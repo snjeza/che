@@ -49,9 +49,6 @@
         "./css/font-awesome.css",
         "./fonts/*"
       ]
-    },
-    "angular-ui-codemirror" : {
-        "codemirror": "5.16.0"
     }
   }
 }
