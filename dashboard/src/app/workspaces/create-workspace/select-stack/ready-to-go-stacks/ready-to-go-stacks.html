@@ -15,9 +15,7 @@
   <div class="stack-label-info">Create a new workspace with a ready-to-go stack.</div>
   <div layout="column" flex>
     <div layout="row" flex layout-align="space-around start">
-      <label flex="15" hide-sm hide-md>Commonly used stacks: </label>
-
-      <div layout="row" flex="85" layout-wrap>
+      <div layout="row" flex="100" layout-wrap>
         <md-card layout="column" class="che-simple-selector"
                  ng-repeat="stack in readyToGoStacksCtrl.generalStacks | orderBy:[readyToGoStacksCtrl.getPrivilegedSortPosition, 'name']"
                  ng-init="readyToGoStacksCtrl.initValue($first, stack)"
