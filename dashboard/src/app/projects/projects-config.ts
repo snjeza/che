@@ -11,7 +11,7 @@
 'use strict';
 
 import {CreateProjectCtrl} from './create-project/create-project.controller';
-import {CreateProjectSvc} from './create-project/create-project.service.js';
+import {CreateProjectSvc} from './create-project/create-project.service';
 import {ListProjectsCtrl} from './list-projects/list-projects.controller';
 import {CreateProjectGithubCtrl} from './create-project/github/create-project-github.controller';
 import {ListProjectsWorkspaceFilter} from './list-projects/list-projects-filter-workspace.filter';

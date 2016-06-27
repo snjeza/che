@@ -10,11 +10,11 @@
  */
 'use strict';
 
-import {CheUIElementsInjectorService} from './che-ui-elements-injector.service.js';
-
-export class CheUIElementsInjectorConfig {
+export class ProxySettingsConfig {
 
   constructor(register) {
-    register.service('cheUIElementsInjectorService', CheUIElementsInjectorService);
+    // Register this factory
+    register.app.constant('proxySettings', 'http://localhost:8080');
+
   }
 }
