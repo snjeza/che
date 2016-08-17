@@ -13,7 +13,6 @@ package org.eclipse.che.ide.extension.machine.client.processes;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 
-import org.eclipse.che.api.machine.shared.dto.MachineDto;
 import org.eclipse.che.commons.annotation.Nullable;
 import org.eclipse.che.ide.ui.tree.TreeNodeElement;
 import org.eclipse.che.ide.util.UUID;
@@ -67,8 +66,8 @@ public class ProcessTreeNode {
 
         switch (type) {
             case MACHINE_NODE:
-                id = ((MachineDto)data).getId();
-                displayName = ((MachineDto)data).getConfig().getName();
+                id = (String)data;
+                displayName = (String)data;
                 break;
             case COMMAND_NODE:
                 id = data + UUID.uuid();
