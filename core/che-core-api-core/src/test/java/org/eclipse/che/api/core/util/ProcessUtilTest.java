@@ -68,6 +68,8 @@ public class ProcessUtilTest {
 
         ProcessUtil.kill(p); // kill process
 
+        Thread.sleep(1000); // give time to stop process
+
         latch.await(15, TimeUnit.SECONDS); // should not stop here if process killed
         final long end = System.currentTimeMillis();
 
