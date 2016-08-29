@@ -11,12 +11,12 @@
 'use strict';
 
 import {CheNotification} from './che-notification.factory';
-import {CheSystemNotification} from './che-system-notification.factory';
+import {ApplicationNotifications} from './application-notifications.factory';
 
 export class CheNotificationConfig {
 
   constructor(register) {
     register.factory('cheNotification', CheNotification);
-    register.factory('cheSystemNotification', CheSystemNotification);
+    register.factory('applicationNotifications', ApplicationNotifications);
   }
 }
