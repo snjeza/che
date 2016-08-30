@@ -71,7 +71,7 @@ public class CheEnvironmentEngineTest {
     @Mock
     MessageConsumer<MachineLogMessage> messageConsumer;
     @Mock
-    InstanceProvider instanceProvider;
+    InstanceProvider                   instanceProvider;
 
     @Mock
     ComposeMachineInstanceProvider provider;
@@ -81,6 +81,9 @@ public class CheEnvironmentEngineTest {
     EventService             eventService;
     @Mock
     SnapshotDao snapshotDao;
+    @Mock
+    AgentConfigApplier agentConfigApplier;
+
 
     CheEnvironmentEngine engine;
 
@@ -93,7 +96,8 @@ public class CheEnvironmentEngineTest {
                                               eventService,
                                               new ComposeFileParser(URI.create("http://localhost")),
                                               new ComposeServicesStartStrategy(),
-                                              provider));
+                                              provider,
+                                              agentConfigApplier));
 
         when(machineInstanceProviders.getProvider("docker")).thenReturn(instanceProvider);
         when(instanceProvider.getRecipeTypes()).thenReturn(Collections.singleton("dockerfile"));

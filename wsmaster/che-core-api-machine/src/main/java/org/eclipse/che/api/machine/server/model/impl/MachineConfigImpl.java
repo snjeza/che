@@ -65,7 +65,6 @@ public class MachineConfigImpl implements MachineConfig {
             this.source = new MachineSourceImpl(source);
         }
         this.limits = new LimitsImpl(limits);
-
     }
 
     public MachineConfigImpl(MachineConfig machineCfg) {
@@ -185,6 +184,7 @@ public class MachineConfigImpl implements MachineConfig {
         private Limits                     limits;
         private List<? extends ServerConf> servers;
         private Map<String, String>        envVariables;
+        private List<String>               agents;
 
         public MachineConfigImpl build() {
             return new MachineConfigImpl(dev,
@@ -239,6 +239,11 @@ public class MachineConfigImpl implements MachineConfig {
 
         public MachineConfigImplBuilder setEnvVariables(Map<String, String> envVariables) {
             this.envVariables = envVariables;
+            return this;
+        }
+
+        public MachineConfigImplBuilder setAgents(List<String> agents) {
+            this.agents = agents;
             return this;
         }
     }

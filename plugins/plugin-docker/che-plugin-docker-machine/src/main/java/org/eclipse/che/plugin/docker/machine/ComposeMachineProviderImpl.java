@@ -424,7 +424,7 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
                                    boolean isDev,
                                    String image,
                                    String networkName,
-                                   ComposeServiceImpl service) throws IOException {
+                                   ComposeServiceImpl service) throws IOException, MachineException {
 
         long machineMemorySwap = memorySwapMultiplier == -1 ?
                                  -1 :

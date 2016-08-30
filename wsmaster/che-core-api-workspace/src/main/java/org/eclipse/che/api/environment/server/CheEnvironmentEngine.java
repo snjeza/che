@@ -13,6 +13,7 @@ package org.eclipse.che.api.environment.server;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 
+import org.eclipse.che.api.agent.server.exception.AgentException;
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -24,6 +25,7 @@ import org.eclipse.che.api.core.model.machine.MachineSource;
 import org.eclipse.che.api.core.model.machine.MachineStatus;
 import org.eclipse.che.api.core.model.machine.ServerConf;
 import org.eclipse.che.api.core.model.workspace.Environment;
+import org.eclipse.che.api.core.model.workspace.ExtendedMachine;
 import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.core.util.AbstractLineConsumer;
@@ -77,6 +79,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.eclipse.che.api.machine.server.event.InstanceStateEvent.Type.DIE;
 import static org.eclipse.che.api.machine.server.event.InstanceStateEvent.Type.OOM;
 import static org.eclipse.che.dto.server.DtoFactory.newDto;
@@ -103,6 +107,7 @@ public class CheEnvironmentEngine {
     private final ComposeFileParser              composeFileParser;
     private final ComposeServicesStartStrategy   startStrategy;
     private final ComposeMachineInstanceProvider composeProvider;
+    private final AgentConfigApplier             agentConfigApplier;
 
     private volatile boolean isPreDestroyInvoked;
 
@@ -114,12 +119,14 @@ public class CheEnvironmentEngine {
                                 EventService eventService,
                                 ComposeFileParser composeFileParser,
                                 ComposeServicesStartStrategy startStrategy,
-                                ComposeMachineInstanceProvider composeProvider) {
+                                ComposeMachineInstanceProvider composeProvider,
+                                AgentConfigApplier agentConfigApplier) {
         this.snapshotDao = snapshotDao;
         this.eventService = eventService;
         this.composeFileParser = composeFileParser;
         this.startStrategy = startStrategy;
         this.composeProvider = composeProvider;
+        this.agentConfigApplier = agentConfigApplier;
         this.environments = new ConcurrentHashMap<>();
         this.machineInstanceProviders = machineInstanceProviders;
         this.machineLogsDir = new File(machineLogsDir);
@@ -324,6 +331,7 @@ public class CheEnvironmentEngine {
             // needed to reuse startInstance method and
             // create machine instances by different implementation-specific providers
             ComposeServiceImpl composeService = machineConfigToComposeService(machineConfig);
+
             machineStarter = (machineLogger, machineSource) -> {
                 ComposeServiceImpl serviceWithCorrectSource = getServiceWithCorrectSource(composeService, machineSource);
                 return composeProvider.startService(namespace,
@@ -490,7 +498,23 @@ public class CheEnvironmentEngine {
                    ConflictException {
 
         ComposeEnvironmentImpl composeEnvironment = composeFileParser.parse(env);
+        for (Map.Entry<String, ? extends ExtendedMachine> entry : env.getMachines().entrySet()) {
+            String name = entry.getKey();
 
+
+            List<String> agents;
+            if (entry.getValue().getAgents().contains("ws-agent")) {
+                agents = asList("org.eclipse.che.terminal", "org.eclipse.che.ws-agent", "org.eclipse.che.ssh");
+            } else {
+                agents = singletonList("org.eclipse.che.terminal");
+            }
+
+            try {
+                agentConfigApplier.modify(composeEnvironment.getServices().get(name), agents);
+            } catch (AgentException e) {
+                throw new ServerException("Can't modify compose", e);
+            }
+        }
         normalizeEnvironment(composeEnvironment);
 
         List<String> servicesOrder = startStrategy.order(composeEnvironment);
@@ -556,6 +580,7 @@ public class CheEnvironmentEngine {
 
         try {
             composeProvider.createNetwork(networkId);
+
 
             String machineName = queuePeekOrFail(workspaceId);
             while (machineName != null) {
