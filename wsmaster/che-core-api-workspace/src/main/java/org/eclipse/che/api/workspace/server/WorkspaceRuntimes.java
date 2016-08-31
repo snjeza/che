@@ -13,8 +13,8 @@ package org.eclipse.che.api.workspace.server;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import org.eclipse.che.api.agent.server.AgentRegistry;
 import org.eclipse.che.api.agent.server.exception.AgentException;
+import org.eclipse.che.api.agent.server.impl.AgentSorter;
 import org.eclipse.che.api.agent.server.launcher.AgentLauncher;
 import org.eclipse.che.api.agent.server.launcher.AgentLauncherFactory;
 import org.eclipse.che.api.agent.shared.model.Agent;
@@ -48,7 +48,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +58,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.eclipse.che.api.machine.shared.Constants.ENVIRONMENT_OUTPUT_CHANNEL_TEMPLATE;
 import static org.eclipse.che.dto.server.DtoFactory.newDto;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -95,7 +96,7 @@ public class WorkspaceRuntimes {
     private final StripedLocks                stripedLocks;
     private final CheEnvironmentEngine        environmentEngine;
     private final AgentLauncherFactory        launcherFactory;
-    private final AgentRegistry               agentRegistry;
+    private final AgentSorter                 agentSorter;
 
     private volatile boolean isPreDestroyInvoked;
 
@@ -103,11 +104,11 @@ public class WorkspaceRuntimes {
     public WorkspaceRuntimes(EventService eventService,
                              CheEnvironmentEngine environmentEngine,
                              AgentLauncherFactory launcherFactory,
-                             AgentRegistry agentRegistry) {
+                             AgentSorter agentSorter) {
         this.eventService = eventService;
         this.environmentEngine = environmentEngine;
         this.launcherFactory = launcherFactory;
-        this.agentRegistry = agentRegistry;
+        this.agentSorter = agentSorter;
         this.workspaces = new HashMap<>();
         // 16 - experimental value for stripes count, it comes from default hash map size
         this.stripedLocks = new StripedLocks(16);
@@ -144,7 +145,7 @@ public class WorkspaceRuntimes {
         RuntimeDescriptor runtimeDescriptor = new RuntimeDescriptor(workspaceState.status,
                                                                     new WorkspaceRuntimeImpl(workspaceState.activeEnv,
                                                                                              null,
-                                                                                             Collections.emptyList(),
+                                                                                             emptyList(),
                                                                                              null));
         List<Instance> machines = environmentEngine.getMachines(workspaceId);
         Optional<Instance> devMachineOptional = machines.stream()
@@ -241,8 +242,10 @@ public class WorkspaceRuntimes {
                                                               environmentCopy,
                                                               recover,
                                                               getEnvironmentLogger(workspaceId));
+
             for (Instance machine : machines) {
-                launchAgents(machine);
+                List<String> agents = environment.getMachines().get(machine.getConfig().getName()).getAgents();
+                launchAgents(machine, agents);
             }
 
             try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
@@ -390,7 +393,7 @@ public class WorkspaceRuntimes {
         }
 
         Instance instance = environmentEngine.startMachine(workspaceId, machineConfig);
-        launchAgents(instance);
+        launchAgents(instance, singletonList("org.eclipse.che.terminal"));
 
         try (StripedLocks.WriteLock lock = stripedLocks.acquireWriteLock(workspaceId)) {
             WorkspaceState workspaceState = workspaces.get(workspaceId);
@@ -583,27 +586,17 @@ public class WorkspaceRuntimes {
         }
     }
 
-    private void launchAgents(Instance instance) throws MachineException {
-        launchAgent(instance, "org.eclipse.che.terminal");
-
-        if (instance.getConfig().isDev()) {
-            launchAgent(instance, "org.eclipse.che.ws-agent");
-            launchAgent(instance, "org.eclipse.che.ssh");
-        }
-    }
-
-    private void launchAgent(Instance instance, String agentName) throws MachineException {
-        LOG.info("Launching '{}' agent", agentName);
-
-        Agent agent;
+    private void launchAgents(Instance instance, List<String> agents) throws MachineException {
         try {
-            agent = agentRegistry.createAgent(agentName);
-        } catch (AgentException e) {
-            throw new MachineException(format("Can't create agent %s", agentName), e);
-        }
+            for (Agent agent : agentSorter.sort(agents)) {
+                LOG.info("Launching '{}' agent on '{}'", agent.getName(), instance.getConfig().getName());
 
-        AgentLauncher launcher = launcherFactory.find(agentName, instance.getConfig().getType());
-        launcher.launch(instance, agent);
+                AgentLauncher launcher = launcherFactory.find(agent.getName(), instance.getConfig().getType());
+                launcher.launch(instance, agent);
+            }
+        } catch (AgentException e) {
+            throw new MachineException(e);
+        }
     }
 
     public static class WorkspaceState {

@@ -77,7 +77,7 @@ public class AgentConfigApplierTest {
 
         agentConfigApplier.modify(composeService, Arrays.asList("agent1", "agent2", "agent3"));
 
-        List<String> exposedPorts = composeService.getPorts();
+        List<String> exposedPorts = composeService.getExpose();
         assertTrue(exposedPorts.contains("1111/udp"));
         assertTrue(exposedPorts.contains("2222/tcp"));
         assertTrue(exposedPorts.contains("3333/udp"));

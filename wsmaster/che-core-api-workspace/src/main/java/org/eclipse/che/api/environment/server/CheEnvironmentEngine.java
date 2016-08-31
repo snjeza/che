@@ -79,8 +79,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
 import static java.lang.String.format;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static org.eclipse.che.api.machine.server.event.InstanceStateEvent.Type.DIE;
 import static org.eclipse.che.api.machine.server.event.InstanceStateEvent.Type.OOM;
 import static org.eclipse.che.dto.server.DtoFactory.newDto;
@@ -499,18 +497,11 @@ public class CheEnvironmentEngine {
 
         ComposeEnvironmentImpl composeEnvironment = composeFileParser.parse(env);
         for (Map.Entry<String, ? extends ExtendedMachine> entry : env.getMachines().entrySet()) {
-            String name = entry.getKey();
-
-
-            List<String> agents;
-            if (entry.getValue().getAgents().contains("ws-agent")) {
-                agents = asList("org.eclipse.che.terminal", "org.eclipse.che.ws-agent", "org.eclipse.che.ssh");
-            } else {
-                agents = singletonList("org.eclipse.che.terminal");
-            }
+            String machineName = entry.getKey();
+            List<String> agents = entry.getValue().getAgents();
 
             try {
-                agentConfigApplier.modify(composeEnvironment.getServices().get(name), agents);
+                agentConfigApplier.modify(composeEnvironment.getServices().get(machineName), agents);
             } catch (AgentException e) {
                 throw new ServerException("Can't modify compose", e);
             }
@@ -548,7 +539,7 @@ public class CheEnvironmentEngine {
                   .stream()
                   .filter(entry -> entry.getValue()
                                         .getAgents()
-                                        .contains("ws-agent"))
+                                        .contains("org.eclipse.che.ws-agent"))
                   .findAny()
                   .orElseThrow(
                           () -> new ServerException("Agent 'ws-agent' is not found in any of environment machines"))

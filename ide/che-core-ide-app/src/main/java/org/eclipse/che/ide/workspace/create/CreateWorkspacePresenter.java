@@ -233,7 +233,7 @@ public class CreateWorkspacePresenter implements CreateWorkspaceView.ActionDeleg
                                                 .withContentType("application/x-yaml");
 
         ExtendedMachineDto machine = dtoFactory.createDto(ExtendedMachineDto.class)
-                                               .withAgents(Collections.singletonList("ws-agent"));
+                                               .withAgents(Collections.singletonList("org.eclipse.che.ws-agent"));
 
         EnvironmentDto environment = dtoFactory.createDto(EnvironmentDto.class)
                                                .withRecipe(recipe)

@@ -62,13 +62,13 @@ public class AgentSorter {
         Set<String> pending = new HashSet<>();
 
         for (String agentKey : agentKeys) {
-            doSort(parse(agentKey), sorted, pending);
+            doSort(agentKeys, parse(agentKey), sorted, pending);
         }
 
         return new ArrayList<>(sorted.values());
     }
 
-    private void doSort(AgentKey agentKey, Map<String, Agent> sorted, Set<String> pending) throws AgentException {
+    private void doSort(List<String> agentKeys, AgentKey agentKey, Map<String, Agent> sorted, Set<String> pending) throws AgentException {
         String agentName = agentKey.getName();
 
         if (sorted.containsKey(agentName)) {
@@ -81,7 +81,9 @@ public class AgentSorter {
         Agent agent = agentRegistry.createAgent(agentKey);
 
         for (String dependency : agent.getDependencies()) {
-            doSort(parse(dependency), sorted, pending);
+            if (agentKeys.contains(dependency)) {
+                doSort(agentKeys, parse(dependency), sorted, pending);
+            }
         }
 
         sorted.put(agentName, agent);

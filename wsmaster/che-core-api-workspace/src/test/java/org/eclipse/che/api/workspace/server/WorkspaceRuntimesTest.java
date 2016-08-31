@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.eclipse.che.api.workspace.server;
 
-import org.eclipse.che.api.agent.server.AgentRegistry;
+import org.eclipse.che.api.agent.server.impl.AgentSorter;
 import org.eclipse.che.api.agent.server.launcher.AgentLauncherFactory;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -83,13 +83,13 @@ public class WorkspaceRuntimesTest {
     @Mock
     private AgentLauncherFactory launcherFactory;
     @Mock
-    private AgentRegistry        agentRegistry;
+    private AgentSorter          agentSorter;
 
     private WorkspaceRuntimes runtimes;
 
     @BeforeMethod
     public void setUp(Method method) throws Exception {
-        runtimes = spy(new WorkspaceRuntimes(eventService, environmentEngine, launcherFactory, agentRegistry));
+        runtimes = spy(new WorkspaceRuntimes(eventService, environmentEngine, launcherFactory, agentSorter));
 
         List<Instance> machines = asList(createMachine(true), createMachine(false));
         when(environmentEngine.start(anyString(),

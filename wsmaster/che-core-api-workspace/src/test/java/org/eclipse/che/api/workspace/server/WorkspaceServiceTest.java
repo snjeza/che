@@ -816,7 +816,7 @@ public class WorkspaceServiceTest {
     }
 
     private static EnvironmentDto createEnvDto() {
-        ExtendedMachineImpl devMachine = new ExtendedMachineImpl(singletonList("ws-agent"), null);
+        ExtendedMachineImpl devMachine = new ExtendedMachineImpl(singletonList("org.eclipse.che.ws-agent"), null);
 
         return DtoConverter.asDto(new EnvironmentImpl(new EnvironmentRecipeImpl("type", "content-type", "content", null),
                                                       singletonMap("dev-machine", devMachine)));

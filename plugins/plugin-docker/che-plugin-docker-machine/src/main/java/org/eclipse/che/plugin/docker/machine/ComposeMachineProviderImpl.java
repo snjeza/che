@@ -457,8 +457,8 @@ public class ComposeMachineProviderImpl implements ComposeMachineInstanceProvide
 
         ContainerConfig config = new ContainerConfig();
         config.withImage(image)
-              .withExposedPorts(service.getExpose().stream().collect(Collectors.toMap(Function.identity(),
-                                                                                      value -> Collections.emptyMap())))
+              .withExposedPorts(service.getExpose().stream().distinct().collect(Collectors.toMap(Function.identity(),
+                                                                                                 value -> Collections.emptyMap())))
               .withHostConfig(hostConfig)
               .withCmd(toArrayIfNotNull(service.getCommand()))
               .withEntrypoint(toArrayIfNotNull(service.getEntrypoint()))

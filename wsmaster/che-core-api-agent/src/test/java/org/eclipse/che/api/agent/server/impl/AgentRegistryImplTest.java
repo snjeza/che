@@ -96,7 +96,7 @@ public class AgentRegistryImplTest {
         final Object port = context.getAttribute(EverrestJetty.JETTY_PORT);
         Agent agent = agentRegistry.createAgent("http://localhost:" + port + "/rest/registry/agent/ws-agent");
 
-        assertEquals(agent.getName(), "ws-agent");
+        assertEquals(agent.getName(), "org.eclipse.che.ws-agent");
         assertEquals(agent.getVersion(), "2.0");
     }
 
@@ -105,23 +105,23 @@ public class AgentRegistryImplTest {
         final Object port = context.getAttribute(EverrestJetty.JETTY_PORT);
         Agent agent = agentRegistry.createAgent("http://localhost:" + port + "/rest/registry/agent/ws-agent/1.0");
 
-        assertEquals(agent.getName(), "ws-agent");
+        assertEquals(agent.getName(), "org.eclipse.che.ws-agent");
         assertEquals(agent.getVersion(), "1.0");
     }
 
     @Test
     public void testCreateSpecificVersionAgent() throws Exception {
-        Agent agent = agentRegistry.createAgent("ws-agent", "1.0");
+        Agent agent = agentRegistry.createAgent("org.eclipse.che.ws-agent", "1.0");
 
-        assertEquals(agent.getName(), "ws-agent");
+        assertEquals(agent.getName(), "org.eclipse.che.ws-agent");
         assertEquals(agent.getVersion(), "1.0");
     }
 
     @Test
     public void testCreateLatestVersionAgent() throws Exception {
-        Agent agent = agentRegistry.createAgent("ws-agent");
+        Agent agent = agentRegistry.createAgent("org.eclipse.che.ws-agent");
 
-        assertEquals(agent.getName(), "ws-agent");
+        assertEquals(agent.getName(), "org.eclipse.che.ws-agent");
         assertEquals(agent.getVersion(), "2.0");
     }
 
@@ -133,7 +133,7 @@ public class AgentRegistryImplTest {
 
     @Test
     public void testGetAgentsVersion() throws Exception {
-        Collection<String> versions = agentRegistry.getVersions("ws-agent");
+        Collection<String> versions = agentRegistry.getVersions("org.eclipse.che.ws-agent");
 
         assertEquals(versions.size(), 1);
         assertTrue(versions.contains("1.0.0"));
@@ -166,14 +166,14 @@ public class AgentRegistryImplTest {
         @Produces(MediaType.APPLICATION_JSON)
         @Path("/updates/{artifact}")
         public Response getUpdates(@PathParam("artifact") final String artifact) {
-            if (!artifact.endsWith("ws-agent")) {
+            if (!artifact.endsWith("org.eclipse.che.ws-agent")) {
                 return Response.status(Response.Status.NOT_FOUND).entity("{ \"message\" : \"not found\" }").build();
             }
             return Response.status(Response.Status.OK).entity(new JsonArrayImpl<>(singletonList("1.0.0"))).build();
         }
 
         private Response doGetAgent(String artifact, String version) throws IOException {
-            if (!artifact.endsWith("ws-agent")) {
+            if (!artifact.endsWith("org.eclipse.che.ws-agent")) {
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
 

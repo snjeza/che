@@ -23,6 +23,7 @@ import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
@@ -62,6 +63,14 @@ public class AgentSorterTest {
         when(agent2.getName()).thenReturn("fqn2");
 
         when(agent3.getName()).thenReturn("fqn3");
+    }
+
+    @Test
+    public void shouldNotCreateNewAgentsIfDependenciesExist() throws Exception {
+        List<Agent> sorted = agentSorter.sort(Collections.singletonList("fqn1"));
+
+        assertEquals(sorted.size(), 1);
+        assertEquals(sorted.get(0).getName(), "fqn1");
     }
 
     @Test

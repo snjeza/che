@@ -114,9 +114,9 @@ public class AgentConfigApplier {
         for (String port : ports.split(",")) {
             String[] items = port.split(":"); // ref:port
             if (items.length == 1) {
-                composeService.getPorts().add(items[0]);
+                composeService.getExpose().add(items[0]);
             } else {
-                composeService.getPorts().add(items[1]);
+                composeService.getExpose().add(items[1]);
             }
         }
     }
