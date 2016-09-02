@@ -22,6 +22,12 @@
                   </che-input>
                 </div>
               </che-label-container>
+              <che-label-container che-label-name="Recipe Type">
+                <md-radio-group ng-model="workspaceRecipeCtrl.recipeFormat">
+                  <md-radio-button value="compose">Compose</md-radio-button>
+                  <md-radio-button value="docker">Docker</md-radio-button>
+                </md-radio-group>
+              </che-label-container>
             </div>
           </div>
         </div>
