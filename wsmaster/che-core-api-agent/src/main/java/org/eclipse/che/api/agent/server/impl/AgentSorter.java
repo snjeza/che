@@ -61,8 +61,10 @@ public class AgentSorter {
         Map<String, Agent> sorted = new HashMap<>();
         Set<String> pending = new HashSet<>();
 
-        for (String agentKey : agentKeys) {
-            doSort(parse(agentKey), sorted, pending);
+        if (agentKeys != null) {
+            for (String agentKey : agentKeys) {
+                doSort(parse(agentKey), sorted, pending);
+            }
         }
         doSort(parse("org.eclipse.che.terminal"), sorted, pending);
         doSort(parse("org.eclipse.che.ws-agent"), sorted, pending);
