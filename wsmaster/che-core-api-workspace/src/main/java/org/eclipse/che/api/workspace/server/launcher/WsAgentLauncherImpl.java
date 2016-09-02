@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.workspace.server.launcher;
 
+import com.google.common.base.Strings;
+
 import org.eclipse.che.api.agent.server.launcher.AgentLauncher;
 import org.eclipse.che.api.agent.shared.model.Agent;
 import org.eclipse.che.api.core.ApiException;
@@ -25,6 +27,7 @@ import org.eclipse.che.api.machine.server.exception.MachineException;
 import org.eclipse.che.api.machine.server.model.impl.CommandImpl;
 import org.eclipse.che.api.machine.server.spi.Instance;
 import org.eclipse.che.api.machine.shared.Constants;
+import org.eclipse.che.commons.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +52,7 @@ public class WsAgentLauncherImpl implements AgentLauncher {
 
     private static final String WS_AGENT_PROCESS_OUTPUT_CHANNEL = "workspace:%s:ext-server:output";
     private static final String WS_AGENT_SERVER_NOT_FOUND_ERROR = "Workspace agent server not found in dev machine.";
+    private static final String DEFAULT_WS_AGENT_RUN_COMMAND = "~/che/ws-agent/bin/catalina.sh run";
 
     private final Provider<MachineProcessManager> machineProcessManagerProvider;
     private final HttpJsonRequestFactory          httpJsonRequestFactory;
@@ -56,10 +60,12 @@ public class WsAgentLauncherImpl implements AgentLauncher {
     private final long                            wsAgentPingDelayMs;
     private final int                             wsAgentPingConnectionTimeoutMs;
     private final String                          pingTimedOutErrorMessage;
+    private final String wsAgentRunCommand;
 
     @Inject
     public WsAgentLauncherImpl(Provider<MachineProcessManager> machineProcessManagerProvider,
                                HttpJsonRequestFactory httpJsonRequestFactory,
+                               @Nullable @Named("machine.ws_agent.run_command") String wsAgentRunCommand,
                                @Named("machine.ws_agent.max_start_time_ms") long wsAgentMaxStartTimeMs,
                                @Named("machine.ws_agent.ping_delay_ms") long wsAgentPingDelayMs,
                                @Named("machine.ws_agent.ping_conn_timeout_ms") int wsAgentPingConnectionTimeoutMs,
@@ -70,6 +76,7 @@ public class WsAgentLauncherImpl implements AgentLauncher {
         this.wsAgentPingDelayMs = wsAgentPingDelayMs;
         this.wsAgentPingConnectionTimeoutMs = wsAgentPingConnectionTimeoutMs;
         this.pingTimedOutErrorMessage = pingTimedOutErrorMessage;
+        this.wsAgentRunCommand = wsAgentRunCommand;
     }
 
     @Override
@@ -91,11 +98,16 @@ public class WsAgentLauncherImpl implements AgentLauncher {
             throw new MachineException(e.getServiceError());
         }
 
+        String script = agent.getScript()
+                        + "\n"
+                        + (Strings.isNullOrEmpty(wsAgentRunCommand) ? DEFAULT_WS_AGENT_RUN_COMMAND
+                                                                    : wsAgentRunCommand);
+
         final String wsAgentPingUrl = wsAgentPingRequest.getUrl();
         try {
             machineProcessManagerProvider.get().exec(machine.getWorkspaceId(),
                                                      machine.getId(),
-                                                     new CommandImpl(getAgentName(), agent.getScript(), "Arbitrary"),
+                                                     new CommandImpl(getAgentName(), script, "Arbitrary"),
                                                      getWsAgentProcessOutputChannel(machine.getWorkspaceId()));
 
             final long pingStartTimestamp = System.currentTimeMillis();

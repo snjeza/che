@@ -108,6 +108,8 @@ fi
 
 if curl -o /dev/null --silent --head --fail $(echo ${AGENT_BINARIES_URI} | sed -s 's/\\${PREFIX}/'${PREFIX}'/g'); then
     curl -o $(echo ${TARGET_AGENT_BINARIES_URI} | sed -s 's/\\${PREFIX}/'${PREFIX}'/g' | sed -s 's/file:\\/\\///g') -s $(echo ${AGENT_BINARIES_URI} | sed -s 's/\\${PREFIX}/'${PREFIX}'/g')
+elif curl -o /dev/null --silent --head --fail $(echo ${AGENT_BINARIES_URI} | sed -s 's/-\\${PREFIX}//g'); then
+    curl -o $(echo ${TARGET_AGENT_BINARIES_URI} | sed -s 's/\\${PREFIX}/'${PREFIX}'/g' | sed -s 's/file:\\/\\///g') -s $(echo ${AGENT_BINARIES_URI} | sed -s 's/-\\${PREFIX}//g')
 fi
 
 curl -s $(echo ${TARGET_AGENT_BINARIES_URI} | sed -s 's/\\${PREFIX}/'${PREFIX}'/g') | tar  xzf - -C ${CHE_DIR}

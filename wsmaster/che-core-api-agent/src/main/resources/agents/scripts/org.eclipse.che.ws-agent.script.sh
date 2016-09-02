@@ -91,10 +91,11 @@ fi
 ####################
 ### Install java ###
 ####################
-export JAVA_HOME=${CHE_DIR}/jdk1.8.0_45
+export JAVA_HOME=${CHE_DIR}/jdk1.8
 command -v ${JAVA_HOME}/bin/java >/dev/null 2>&1 || {
     JDK_URL=http://download.oracle.com/otn-pub/java/jdk/8u45-b14/jdk-8u45-linux-x64.tar.gz
     curl -s -j -k -L -H "Cookie: oraclelicense=accept-securebackup-cookie" "${JDK_URL}" | tar -C ${CHE_DIR} -xzf -
+    mv ${CHE_DIR}/jdk1.8.0_45 ${CHE_DIR}/jdk1.8
 }
 
 ########################
@@ -105,4 +106,7 @@ rm -rf ${CHE_DIR}/ws-agent
 mkdir -p ${CHE_DIR}/ws-agent
 curl -s  ${AGENT_BINARIES_URI} | tar  xzf - -C ${CHE_DIR}/ws-agent
 
-JPDA_ADDRESS=4403 && ${CHE_DIR}/ws-agent/bin/catalina.sh jpda run
+###############################################
+### ws-agent run command will be added here ###
+### ~/che/ws-agent/bin/catalina.sh run      ###
+###############################################

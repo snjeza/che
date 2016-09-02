@@ -85,12 +85,12 @@ public class WsAgentLauncherImplTest {
     @BeforeMethod
     public void setUp() throws Exception {
         wsAgentLauncher = new WsAgentLauncherImpl(() -> machineProcessManager,
-                                                  requestFactory,
-                                                  /*WS_AGENT_START_CMD_LINE,*/
+                                                  requestFactory, null,
                                                   WS_AGENT_MAX_START_TIME_MS,
                                                   WS_AGENT_PING_DELAY_MS,
                                                   WS_AGENT_PING_CONN_TIMEOUT_MS,
-                                                  WS_AGENT_TIMED_OUT_MESSAGE);
+                                                  WS_AGENT_TIMED_OUT_MESSAGE
+        );
         pingRequest = Mockito.mock(HttpJsonRequest.class, new SelfReturningAnswer());
         when(agent.getScript()).thenReturn("script");
         when(machine.getId()).thenReturn(MACHINE_ID);
