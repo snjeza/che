@@ -32,10 +32,15 @@ import static java.lang.String.format;
  * @author Alexander Garagatyi
  */
 public class LocalCheInfrastructureProvisioner extends DefaultInfrastructureProvisioner {
+
+    public static final String ETC_PASSWD_VOLUME = "/etc/passwd";
+    public static final String ETC_GROUP_VOLUME = "/etc/group";
+    public static final String CHE_USER_ID = "CHE_USER_ID";
+
     private final WorkspaceFolderPathProvider workspaceFolderPathProvider;
     private final WindowsPathEscaper          pathEscaper;
     private final String                      projectFolderPath;
-	private final String                      volumesOptions;
+    private final String                      volumesOptions;
 
     @Inject
     public LocalCheInfrastructureProvisioner(AgentConfigApplier agentConfigApplier,
@@ -82,7 +87,26 @@ public class LocalCheInfrastructureProvisioner extends DefaultInfrastructureProv
                    .add(SystemInfo.isWindows() ? pathEscaper.escapePath(projectFolderVolume)
                                                : projectFolderVolume);
 
+        if (System.getenv(CHE_USER_ID) != null) {
+            addVolume(internalEnv, devMachineName, ETC_PASSWD_VOLUME);
+            addVolume(internalEnv, devMachineName, ETC_GROUP_VOLUME);
+        }
         // apply basic infra (e.g. agents)
         super.provision(envConfig, internalEnv);
     }
+
+	private void addVolume(CheServicesEnvironmentImpl internalEnv, String devMachineName, String volume) {
+        String path;
+        if (volumesOptions != null && volumesOptions.contains("Z")) {
+            path = format("%s:%s:ro,Z", volume, volume);
+        } else {
+            path = format("%s:%s:ro", volume, volume);
+        }
+        internalEnv.getServices()
+                .get(devMachineName)
+                .getVolumes()
+                .add(SystemInfo.isWindows() ? pathEscaper.escapePath(path)
+                                            : path);
+    }
+
 }

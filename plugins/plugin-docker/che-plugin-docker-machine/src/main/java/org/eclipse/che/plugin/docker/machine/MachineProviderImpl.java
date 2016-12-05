@@ -38,6 +38,7 @@ import org.eclipse.che.commons.lang.Size;
 import org.eclipse.che.commons.lang.os.WindowsPathEscaper;
 import org.eclipse.che.plugin.docker.client.DockerConnector;
 import org.eclipse.che.plugin.docker.client.DockerConnectorConfiguration;
+import org.eclipse.che.plugin.docker.client.Exec;
 import org.eclipse.che.plugin.docker.client.ProgressLineFormatterImpl;
 import org.eclipse.che.plugin.docker.client.ProgressMonitor;
 import org.eclipse.che.plugin.docker.client.UserSpecificDockerRegistryCredentialsProvider;
@@ -53,12 +54,14 @@ import org.eclipse.che.plugin.docker.client.json.network.EndpointConfig;
 import org.eclipse.che.plugin.docker.client.json.network.NewNetwork;
 import org.eclipse.che.plugin.docker.client.params.BuildImageParams;
 import org.eclipse.che.plugin.docker.client.params.CreateContainerParams;
+import org.eclipse.che.plugin.docker.client.params.CreateExecParams;
 import org.eclipse.che.plugin.docker.client.params.GetContainerLogsParams;
 import org.eclipse.che.plugin.docker.client.params.PullParams;
 import org.eclipse.che.plugin.docker.client.params.RemoveContainerParams;
 import org.eclipse.che.plugin.docker.client.params.RemoveImageParams;
 import org.eclipse.che.plugin.docker.client.params.RemoveNetworkParams;
 import org.eclipse.che.plugin.docker.client.params.StartContainerParams;
+import org.eclipse.che.plugin.docker.client.params.StartExecParams;
 import org.eclipse.che.plugin.docker.client.params.TagParams;
 import org.eclipse.che.plugin.docker.client.params.network.ConnectContainerToNetworkParams;
 import org.eclipse.che.plugin.docker.client.params.network.CreateNetworkParams;
@@ -282,6 +285,10 @@ public class MachineProviderImpl implements MachineInstanceProvider {
 
             docker.startContainer(StartContainerParams.create(container));
 
+            if (System.getenv("CHE_USER_ID") != null) {
+                prepareContainer(container, machineLogger);
+            }
+
             readContainerLogsInSeparateThread(container,
                                               workspaceId,
                                               service.getId(),
@@ -328,7 +335,27 @@ public class MachineProviderImpl implements MachineInstanceProvider {
         }
     }
 
-    @Override
+    private void prepareContainer(String containerId, LineConsumer machineLogger) throws MachineException {
+        String prepareCmd = "CHE_USER=`id -un`;"
+                + "sudo chown -R ${CHE_USER}:docker /home/user;"
+                + "sudo ln -s /home/user `eval echo \"~${CHE_USER}\"`";
+        final String[] command = {"/bin/sh", "-c", prepareCmd};
+        Exec exec;
+        try {
+            exec = docker.createExec(CreateExecParams.create(containerId, command).withDetach(false));
+        } catch (IOException e) {
+            throw new MachineException(format("Error occurs while initializing command %s in docker container %s: %s",
+                                              Arrays.toString(command), containerId, e.getMessage()), e);
+        }
+        try {
+            docker.startExec(StartExecParams.create(exec.getId()), new LogMessagePrinter(machineLogger));
+        } catch (IOException e) {
+            throw new MachineException(format("Error occurs while executing command %s in docker container %s: %s",
+                                              Arrays.toString(exec.getCommand()), containerId, e.getMessage()), e);
+        }
+	}
+
+	@Override
     public void createNetwork(String networkName) throws ServerException {
         try {
             docker.createNetwork(CreateNetworkParams.create(new NewNetwork().withName(networkName)
