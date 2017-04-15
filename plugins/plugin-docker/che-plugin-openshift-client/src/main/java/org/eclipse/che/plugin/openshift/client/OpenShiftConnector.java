@@ -740,12 +740,14 @@ public class OpenShiftConnector extends DockerConnector {
                     public void eventReceived(Action action, Pod resource) {
                         if (action == Action.DELETED) {
                             ret[0] = true;
+                            LOG.info("Log watch deleted");
                         }
                     }
 
                     @Override
                     public void onClose(KubernetesClientException cause) {
                         ret[0] = true;
+                        LOG.info("Log watch closed");
                     }
 
                 };
@@ -760,8 +762,7 @@ public class OpenShiftConnector extends DockerConnector {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (IOException e) {
-                // The kubernetes client throws an exception (Pipe not connected) when pod doesn't contain any logs.
-                // We can ignore it.
+                throw e;
             } finally {
                 openShiftClient.close();
             }
