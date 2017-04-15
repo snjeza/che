@@ -18,15 +18,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URLEncoder;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -120,6 +124,7 @@ import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.extensions.Deployment;
 import io.fabric8.kubernetes.api.model.extensions.DeploymentBuilder;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
@@ -674,32 +679,26 @@ public class OpenShiftConnector extends DockerConnector {
 
     @Override
     public void getEvents(final GetEventsParams params, MessageProcessor<Event> messageProcessor) {
-        CountDownLatch waitForClose = new CountDownLatch(1);
-        Watcher<io.fabric8.kubernetes.api.model.Event> eventWatcher =
-                new Watcher<io.fabric8.kubernetes.api.model.Event>() {
-            @Override
-            public void eventReceived(Action action, io.fabric8.kubernetes.api.model.Event event) {
-                // Do nothing;
+        List<io.fabric8.kubernetes.api.model.Event> events = openShiftClient.events().inNamespace(openShiftCheProjectName).list().getItems();
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        String ISO_8601_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssX";
+        DateFormat df = new SimpleDateFormat(ISO_8601_DATE_FORMAT);
+        df.setTimeZone(tz);
+        for (io.fabric8.kubernetes.api.model.Event e:events) {
+            Date date;
+            try {
+                date = df.parse(e.getFirstTimestamp());
+            } catch (ParseException e1) {
+                date = null;
             }
-
-            @Override
-            public void onClose(KubernetesClientException e) {
-                if (e == null) {
-                    LOG.error("Eventwatch Closed");
-                } else {
-                    LOG.error("Eventwatch Closed" + e.getMessage());
-                }
-                waitForClose.countDown();
-            }
-        };
-        openShiftClient.events()
-                       .inNamespace(openShiftCheProjectName)
-                       .watch(eventWatcher);
-        try {
-            waitForClose.await();
-        } catch (InterruptedException e) {
-            LOG.error("Thread interrupted while waiting for eventWatcher.");
-            Thread.currentThread().interrupt();
+            Event event = new Event().withType(e.getKind())
+                                     .withFrom(e.getInvolvedObject().getName())
+                                     .withAction(e.getMessage())
+                                     .withStatus(e.getReason())
+                                     .withStatus(e.getReason())
+                                     .withId(e.getMetadata().getUid())
+                                     .withTime(date.getTime());
+            messageProcessor.process(event);
         }
     }
 
@@ -712,36 +711,52 @@ public class OpenShiftConnector extends DockerConnector {
             String podName = pod.getMetadata().getName();
             boolean[] ret = new boolean[1];
             ret[0] = false;
-            try (LogWatch watchLog = openShiftClient.pods().inNamespace(openShiftCheProjectName).withName(podName)
-                    .watchLog()) {
+            Watch watch = null;
+            LogWatch watchLog = null;
+            try {
+                watchLog = openShiftClient.pods()
+                                          .inNamespace(openShiftCheProjectName)
+                                          .withName(podName)
+                                          .watchLog();
                 Watcher<Pod> watcher = new Watcher<Pod>() {
 
                     @Override
                     public void eventReceived(Action action, Pod resource) {
                         if (action == Action.DELETED) {
                             ret[0] = true;
+                            LOG.info("Log watch deleted");
                         }
                     }
 
                     @Override
                     public void onClose(KubernetesClientException cause) {
                         ret[0] = true;
+                        LOG.info("Log watch closed");
                     }
 
                 };
-                openShiftClient.pods().inNamespace(openShiftCheProjectName).withName(podName).watch(watcher);
+                watch = openShiftClient.pods().inNamespace(openShiftCheProjectName).withName(podName).watch(watcher);
                 Thread.sleep(5000);
                 InputStream is = watchLog.getOutput();
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is));
                 while (!ret[0]) {
-                    String line = bufferedReader.readLine();
-                    containerLogsProcessor.process(new LogMessage(LogMessage.Type.DOCKER, line));
+                    while (bufferedReader.ready()) {
+                        String line = bufferedReader.readLine();
+                        containerLogsProcessor.process(new LogMessage(LogMessage.Type.DOCKER, line));
+                    }
+                    Thread.sleep(2000);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-            } catch (IOException e) {
-                // The kubernetes client throws an exception (Pipe not connected) when pod doesn't contain any logs.
-                // We can ignore it.
+            } catch(IOException e) {
+                throw e;
+            } finally {
+                if (watch != null) {
+                    watch.close();
+                }
+                if (watchLog != null) {
+                    watchLog.close();
+                }
             }
         }
     }
