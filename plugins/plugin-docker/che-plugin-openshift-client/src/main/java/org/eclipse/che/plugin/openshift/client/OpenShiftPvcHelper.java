@@ -68,6 +68,8 @@ public class OpenShiftPvcHelper {
 
     protected enum Command {REMOVE, MAKE}
 
+    private OpenShiftClient openShiftClient;
+
     @Inject
     protected OpenShiftPvcHelper(@Named("che.openshift.jobs.image") String jobImage,
                                  @Named("che.openshift.jobs.memorylimit") String jobMemoryLimit) {
@@ -159,7 +161,7 @@ public class OpenShiftPvcHelper {
                                    .build();
 
 
-        try (OpenShiftClient openShiftClient = new DefaultOpenShiftClient()){
+        try {
             openShiftClient.pods().inNamespace(projectNamespace).create(podSpec);
             boolean completed = false;
             while(!completed) {
@@ -229,4 +231,9 @@ public class OpenShiftPvcHelper {
         }
         return dirsToCreate.toArray(new String[dirsToCreate.size()]);
     }
+
+    public void setOpenShiftClient(OpenShiftClient openShiftClient) {
+        this.openShiftClient = openShiftClient;
+    }
+
 }
